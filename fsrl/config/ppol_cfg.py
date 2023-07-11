@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 @dataclass
 class TrainCfg:
     # general task params
-    task: str = "SafetyCarCircle-v0"
+    task: str = "Goal_Point_8Hazards"
     cost_limit: float = 10
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
@@ -13,15 +13,15 @@ class TrainCfg:
     use_default_cfg: bool = False
     # algorithm params
     lr: float = 5e-4
-    hidden_sizes: Tuple[int, ...] = (128, 128)
+    hidden_sizes: Tuple[int, ...] = (128, 128)  # paper
     unbounded: bool = False
     last_layer_scale: bool = False
     # PPO specific arguments
     target_kl: float = 0.02
     vf_coef: float = 0.25
     max_grad_norm: Optional[float] = 0.5
-    gae_lambda: float = 0.95
-    eps_clip: float = 0.2
+    gae_lambda: float = 0.95  # 0.95-0.97
+    eps_clip: float = 0.2  #0.1-0.2
     dual_clip: Optional[float] = None
     value_clip: bool = False  # no need
     norm_adv: bool = True  # good for improving training stability
@@ -31,9 +31,11 @@ class TrainCfg:
     lagrangian_pid: Tuple[float, ...] = (0.05, 0.0005, 0.1)
     rescaling: bool = True
     # Base policy common arguments
-    gamma: float = 0.99
+    gamma: float = 0.99  # 0.95-0.9995
     max_batchsize: int = 100000
-    rew_norm: bool = False  # no need, it will slow down training and decrease final perf
+    rew_norm: bool = (
+        False  # no need, it will slow down training and decrease final perf
+    )
     deterministic_eval: bool = True
     action_scaling: bool = True
     action_bound_method: str = "clip"
@@ -41,9 +43,12 @@ class TrainCfg:
     epoch: int = 200
     episode_per_collect: int = 20
     step_per_epoch: int = 10000
-    repeat_per_collect: int = 4  # increasing this can improve efficiency, but less stability
+    repeat_per_collect: int = (
+        4  # increasing this can improve efficiency, but less stability
+    )
     buffer_size: int = 100000
-    worker: str = "ShmemVectorEnv"
+    # worker: str = "ShmemVectorEnv"
+    worker: str = "SafeShmemVectorEnv"  # modif
     training_num: int = 20
     testing_num: int = 2
     # general params
@@ -92,7 +97,9 @@ class MujocoBaseCfg(TrainCfg):
     # collecting params
     episode_per_collect: int = 20
     step_per_epoch: int = 20000
-    repeat_per_collect: int = 4  # increasing this can improve efficiency, but less stability
+    repeat_per_collect: int = (
+        4  # increasing this can improve efficiency, but less stability
+    )
 
 
 @dataclass

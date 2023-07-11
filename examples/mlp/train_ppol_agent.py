@@ -1,15 +1,26 @@
 import os
 from dataclasses import asdict
-
+import time
 import bullet_safety_gym
 
 try:
     import safety_gymnasium
 except ImportError:
     print("safety_gymnasium is not found.")
-import gymnasium as gym
+# import gymnasium as gym
+import gym
 import pyrallis
-from tianshou.env import BaseVectorEnv, ShmemVectorEnv, SubprocVectorEnv
+import numpy as np
+# from tianshou.env import BaseVectorEnv, ShmemVectorEnv, SubprocVectorEnv
+# from tianshou.env import ShmemVectorEnv
+
+from fsrl.utils.wrapper.worker import (
+    BaseVectorEnv,
+    ShmemVectorEnv,
+    SafeShmemVectorEnv,
+    SubprocVectorEnv,
+)  # modif
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from fsrl.agent import PPOLagAgent
 from fsrl.config.ppol_cfg import (
@@ -24,6 +35,10 @@ from fsrl.config.ppol_cfg import (
 )
 from fsrl.utils import BaseLogger, TensorboardLogger, WandbLogger
 from fsrl.utils.exp_util import auto_name
+
+from guard.safe_rl_lib.utils.safe_rl_env_config import configuration
+from guard.safe_rl_envs.safe_rl_envs.envs.engine import Engine as safe_rl_envs_Engine
+from fsrl.utils.wrapper.guard_wrapper import create_env, InitWrapper
 
 TASK_TO_CFG = {
     # bullet safety gym tasks
@@ -63,7 +78,6 @@ TASK_TO_CFG = {
 
 @pyrallis.wrap()
 def train(args: TrainCfg):
-
     task = args.task
     default_cfg = TASK_TO_CFG[task]() if task in TASK_TO_CFG else TrainCfg()
     # use the default configs instead of the input args.
@@ -86,11 +100,12 @@ def train(args: TrainCfg):
         args.group = args.task + "-cost-" + str(int(args.cost_limit))
     if args.logdir is not None:
         args.logdir = os.path.join(args.logdir, args.project, args.group)
-    logger = WandbLogger(cfg, args.project, args.group, args.name, args.logdir)
+    # logger = WandbLogger(cfg, args.project, args.group, args.name, args.logdir)
     # logger = TensorboardLogger(args.logdir, log_txt=True, name=args.name)
+    logger = BaseLogger(args.logdir, log_txt=True, name=args.name)
     logger.save_config(cfg, verbose=args.verbose)
 
-    demo_env = gym.make(args.task)
+    demo_env = create_env(args)
 
     agent = PPOLagAgent(
         env=demo_env,
@@ -125,8 +140,11 @@ def train(args: TrainCfg):
 
     training_num = min(args.training_num, args.episode_per_collect)
     worker = eval(args.worker)
-    train_envs = worker([lambda: gym.make(args.task) for _ in range(training_num)])
-    test_envs = worker([lambda: gym.make(args.task) for _ in range(args.testing_num)])
+
+    train_envs = InitWrapper(lambda: create_env(args), worker, training_num, args)
+    test_envs = InitWrapper(lambda: create_env(args), worker, args.testing_num, args)
+    # train_envs = worker([lambda: gym.make(args.task) for _ in range(training_num)])
+    # test_envs = worker([lambda: gym.make(args.task) for _ in range(args.testing_num)])
 
     # start training
     agent.learn(
@@ -149,7 +167,9 @@ def train(args: TrainCfg):
     if __name__ == "__main__":
         # Let's watch its performance!
         from fsrl.data import FastCollector
-        env = gym.make(args.task)
+
+        # env = gym.make(args.task)
+        env = create_env(args)
         agent.policy.eval()
         collector = FastCollector(agent.policy, env)
         result = collector.collect(n_episode=10, render=args.render)

@@ -13,7 +13,7 @@ from tianshou.data import (
     to_numpy,
 )
 from tianshou.env import BaseVectorEnv, DummyVectorEnv
-
+from guard.safe_rl_envs.safe_rl_envs.envs.engine import Engine
 from fsrl.policy import BasePolicy
 
 
@@ -47,13 +47,13 @@ class FastCollector(object):
     def __init__(
         self,
         policy: BasePolicy,
-        env: Union[gym.Env, BaseVectorEnv],
+        env: Union[Engine, BaseVectorEnv],
         buffer: Optional[ReplayBuffer] = None,
         preprocess_fn: Optional[Callable[..., Batch]] = None,
         exploration_noise: bool = False,
     ) -> None:
         super().__init__()
-        if isinstance(env, gym.Env) and not hasattr(env, "__len__"):
+        if isinstance(env, Engine) and not hasattr(env, "__len__"):
             warnings.warn("Single environment detected, wrap to DummyVectorEnv.")
             self.env = DummyVectorEnv([lambda: env])
         else:

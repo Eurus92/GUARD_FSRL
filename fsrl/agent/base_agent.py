@@ -10,6 +10,8 @@ from fsrl.policy import BasePolicy
 from fsrl.trainer import OffpolicyTrainer, OnpolicyTrainer
 from fsrl.utils import BaseLogger
 
+from guard.safe_rl_lib.utils.safe_rl_env_config import configuration
+from guard.safe_rl_envs.safe_rl_envs.envs.engine import Engine
 
 class BaseAgent(ABC):
     """The base class for a default agent.
@@ -52,7 +54,7 @@ class BaseAgent(ABC):
 
     def evaluate(
         self,
-        test_envs: Union[gym.Env, BaseVectorEnv],
+        test_envs: Union[Engine, BaseVectorEnv],
         state_dict: Optional[dict] = None,
         eval_episodes: int = 10,
         render: bool = False,
@@ -107,8 +109,8 @@ class OffpolicyAgent(BaseAgent):
 
     def learn(
         self,
-        train_envs: Union[gym.Env, BaseVectorEnv],
-        test_envs: Union[gym.Env, BaseVectorEnv] = None,
+        train_envs: Union[Engine, BaseVectorEnv],
+        test_envs: Union[Engine, BaseVectorEnv] = None,
         epoch: int = 300,
         episode_per_collect: int = 5,
         step_per_epoch: int = 3000,
@@ -157,10 +159,10 @@ class OffpolicyAgent(BaseAgent):
         # set policy to train mode
         self.policy.train()
         # collector
-        if isinstance(train_envs, gym.Env):
+        if isinstance(train_envs, Engine):
             buffer = ReplayBuffer(buffer_size)
         else:
-            buffer = VectorReplayBuffer(buffer_size, len(train_envs))
+            buffer = VectorReplayBuffer(buffer_size, train_envs.__len__)
         train_collector = FastCollector(
             self.policy,
             train_envs,
@@ -224,8 +226,8 @@ class OnpolicyAgent(BaseAgent):
 
     def learn(
         self,
-        train_envs: Union[gym.Env, BaseVectorEnv],
-        test_envs: Union[gym.Env, BaseVectorEnv] = None,
+        train_envs: Union[Engine, BaseVectorEnv],
+        test_envs: Union[Engine, BaseVectorEnv] = None,
         epoch: int = 300,
         episode_per_collect: int = 20,
         step_per_epoch: int = 10000,
@@ -273,7 +275,7 @@ class OnpolicyAgent(BaseAgent):
         # set policy to train mode
         self.policy.train()
         # collector
-        if isinstance(train_envs, gym.Env):
+        if isinstance(train_envs, Engine):
             buffer = ReplayBuffer(buffer_size)
         else:
             buffer = VectorReplayBuffer(buffer_size, len(train_envs))
