@@ -7,9 +7,10 @@ try:
     import safety_gymnasium
 except ImportError:
     print("safety_gymnasium is not found.")
-import gymnasium as gym
+# import gymnasium as gym
+import gym
 import pyrallis
-from tianshou.env import BaseVectorEnv, ShmemVectorEnv, SubprocVectorEnv
+# from tianshou.env import BaseVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 
 from fsrl.agent import TRPOLagAgent
 from fsrl.config.trpol_cfg import (
@@ -22,8 +23,20 @@ from fsrl.config.trpol_cfg import (
     MujocoBaseCfg,
     TrainCfg,
 )
+# from fsrl.config.trpol_cfg_guard import (
+#     Bullet1MCfg,
+#     Bullet5MCfg,
+#     Bullet10MCfg,
+#     Mujoco2MCfg,
+#     Mujoco10MCfg,
+#     Mujoco20MCfg,
+#     MujocoBaseCfg,
+#     TrainCfg,
+# )
 from fsrl.utils import BaseLogger, TensorboardLogger, WandbLogger
 from fsrl.utils.exp_util import auto_name
+from fsrl.utils.wrapper.guard_wrapper import create_env, VecWrapper
+from fsrl.utils.wrapper.venv import SafeShmemVectorEnv
 
 TASK_TO_CFG = {
     # bullet safety gym tasks
@@ -90,7 +103,8 @@ def train(args: TrainCfg):
     # logger = TensorboardLogger(args.logdir, log_txt=True, name=args.name)
     logger.save_config(cfg, verbose=args.verbose)
 
-    demo_env = gym.make(args.task)
+    # demo_env = gym.make(args.task)
+    demo_env = create_env(args)
 
     agent = TRPOLagAgent(
         env=demo_env,
@@ -122,8 +136,10 @@ def train(args: TrainCfg):
 
     training_num = min(args.training_num, args.episode_per_collect)
     worker = eval(args.worker)
-    train_envs = worker([lambda: gym.make(args.task) for _ in range(training_num)])
-    test_envs = worker([lambda: gym.make(args.task) for _ in range(args.testing_num)])
+    # train_envs = worker([lambda: gym.make(args.task) for _ in range(training_num)])
+    # test_envs = worker([lambda: gym.make(args.task) for _ in range(args.testing_num)])
+    train_envs = VecWrapper(lambda: create_env(args), worker, training_num, args)
+    test_envs = VecWrapper(lambda: create_env(args), worker, args.testing_num, args)
 
     # start training
     agent.learn(
@@ -146,15 +162,15 @@ def train(args: TrainCfg):
     if __name__ == "__main__":
         # Let's watch its performance!
         from fsrl.data import FastCollector
-        env = gym.make(args.task)
+        envs = VecWrapper(lambda: create_env(args), worker, 5, args)
         agent.policy.eval()
-        collector = FastCollector(agent.policy, env)
+        collector = FastCollector(agent.policy, envs)
         result = collector.collect(n_episode=10, render=args.render)
         rews, lens, cost = result["rew"], result["len"], result["cost"]
         print(f"Final eval reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
         agent.policy.train()
-        collector = FastCollector(agent.policy, env)
+        collector = FastCollector(agent.policy, envs)
         result = collector.collect(n_episode=10, render=args.render)
         rews, lens, cost = result["rew"], result["len"], result["cost"]
         print(f"Final train reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")

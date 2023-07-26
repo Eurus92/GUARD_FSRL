@@ -57,7 +57,7 @@ class BaseAgent(ABC):
         test_envs: Union[Engine, BaseVectorEnv],
         state_dict: Optional[dict] = None,
         eval_episodes: int = 10,
-        render: bool = False,
+        render: bool = False,  #modif
         train_mode: bool = False
     ) -> Tuple[float, float, float]:
         """Evaluate the policy on a set of test environments.
@@ -87,7 +87,8 @@ class BaseAgent(ABC):
         # term, trun = result["terminated"], result["truncated"] print(f"Termination:
         # {term}, truncation: {trun}") print(f"Eval reward: {rews.mean()}, cost: {cost},
         # length: {lens.mean()}")
-        return rews, lens, cost
+        cost_dict = result["cost_dict"]
+        return rews, lens, cost, cost_dict
 
     @property
     def state_dict(self):

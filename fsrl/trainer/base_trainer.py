@@ -199,7 +199,7 @@ class BaseTrainer(ABC):
         ) as t:
             while t.n < t.total:
 
-                stats_train = self.train_step()
+                stats_train = self.train_step(str(self.epoch)+'_'+str(t.n))
                 t.update(stats_train["n/st"])
 
                 self.policy_update_fn(stats_train)
@@ -214,14 +214,14 @@ class BaseTrainer(ABC):
 
         # test
         if self.test_collector is not None:
-            self.test_step()
+            self.test_step('_'+str(self.epoch))
 
         # train and test collector info
         update_info = self.gather_update_info()
         self.logger.store(tab="update", **update_info)
 
-        if self.epoch % self.save_model_interval == 0:
-            self.logger.save_checkpoint()
+        if self.epoch % self.save_model_interval == 0 and self.epoch >= 160:
+            self.logger.save_checkpoint(self.epoch)
 
         if self.perf_is_better(test=True):
             self.logger.save_checkpoint(suffix="best")
@@ -261,14 +261,14 @@ class BaseTrainer(ABC):
                 return True
         return False
 
-    def test_step(self) -> Dict[str, Any]:
+    def test_step(self, id: Optional[str]=None) -> Dict[str, Any]:
         """Perform one testing step."""
         assert self.episode_per_test is not None
         assert self.test_collector is not None
         self.test_collector.reset_env()
         self.test_collector.reset_buffer()
         self.policy.eval()
-        stats_test = self.test_collector.collect(n_episode=self.episode_per_test)
+        stats_test = self.test_collector.collect(n_episode=self.episode_per_test, fig_id="test"+id)  #modif
 
         self.logger.store(
             **{
@@ -279,10 +279,10 @@ class BaseTrainer(ABC):
         )
         return stats_test
 
-    def train_step(self) -> Dict[str, Any]:
+    def train_step(self, id: Optional[str]=None) -> Dict[str, Any]:
         """Perform one training step."""
         assert self.episode_per_test is not None
-        stats_train = self.train_collector.collect(self.episode_per_collect)
+        stats_train = self.train_collector.collect(self.episode_per_collect, render=None, fig_id="train"+id)  # modif
 
         self.env_step += int(stats_train["n/st"])
         self.cum_cost += stats_train["total_cost"]

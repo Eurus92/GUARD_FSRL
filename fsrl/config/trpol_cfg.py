@@ -5,11 +5,11 @@ from typing import Optional, Tuple
 @dataclass
 class TrainCfg:
     # general task params
-    task: str = "SafetyCarCircle-v0"
-    cost_limit: float = 10
+    task: str = "Goal_Arm3_8Hazards"
+    cost_limit: float = 1000
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
-    seed: int = 10
+    seed: int = 12
     use_default_cfg: bool = False
     # algorithm params
     lr: float = 5e-4
@@ -35,12 +35,12 @@ class TrainCfg:
     action_scaling: bool = True
     action_bound_method: str = "clip"
     # collecting params
-    epoch: int = 200
+    epoch: int = 500
     episode_per_collect: int = 20
     step_per_epoch: int = 10000
     repeat_per_collect: int = 4  # increasing this can improve efficiency, but less stability
     buffer_size: int = 100000
-    worker: str = "ShmemVectorEnv"
+    worker: str = "SafeShmemVectorEnv"
     training_num: int = 20
     testing_num: int = 2
     # general params

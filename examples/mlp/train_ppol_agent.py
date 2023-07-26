@@ -14,13 +14,6 @@ import numpy as np
 # from tianshou.env import BaseVectorEnv, ShmemVectorEnv, SubprocVectorEnv
 # from tianshou.env import ShmemVectorEnv
 
-from fsrl.utils.wrapper.worker import (
-    BaseVectorEnv,
-    ShmemVectorEnv,
-    SafeShmemVectorEnv,
-    SubprocVectorEnv,
-)  # modif
-from typing import Any, Callable, List, Optional, Tuple, Union
 
 from fsrl.agent import PPOLagAgent
 from fsrl.config.ppol_cfg import (
@@ -36,9 +29,8 @@ from fsrl.config.ppol_cfg import (
 from fsrl.utils import BaseLogger, TensorboardLogger, WandbLogger
 from fsrl.utils.exp_util import auto_name
 
-from guard.safe_rl_lib.utils.safe_rl_env_config import configuration
-from guard.safe_rl_envs.safe_rl_envs.envs.engine import Engine as safe_rl_envs_Engine
-from fsrl.utils.wrapper.guard_wrapper import create_env, InitWrapper
+from fsrl.utils.wrapper.guard_wrapper import create_env, VecWrapper, create_env_noconti, VecWrapper_noconti
+from fsrl.utils.wrapper.venv import SafeShmemVectorEnv
 
 TASK_TO_CFG = {
     # bullet safety gym tasks
@@ -106,6 +98,7 @@ def train(args: TrainCfg):
     logger.save_config(cfg, verbose=args.verbose)
 
     demo_env = create_env(args)
+    # demo_env = create_env_noconti(args)
 
     agent = PPOLagAgent(
         env=demo_env,
@@ -141,10 +134,10 @@ def train(args: TrainCfg):
     training_num = min(args.training_num, args.episode_per_collect)
     worker = eval(args.worker)
 
-    train_envs = InitWrapper(lambda: create_env(args), worker, training_num, args)
-    test_envs = InitWrapper(lambda: create_env(args), worker, args.testing_num, args)
-    # train_envs = worker([lambda: gym.make(args.task) for _ in range(training_num)])
-    # test_envs = worker([lambda: gym.make(args.task) for _ in range(args.testing_num)])
+    train_envs = VecWrapper(lambda: create_env(args), worker, training_num, args)
+    test_envs = VecWrapper(lambda: create_env(args), worker, args.testing_num, args)
+    # train_envs = VecWrapper_noconti(lambda: create_env_noconti(args), worker, training_num, args)
+    # test_envs = VecWrapper_noconti(lambda: create_env_noconti(args), worker, args.testing_num, args)
 
     # start training
     agent.learn(
@@ -168,19 +161,20 @@ def train(args: TrainCfg):
         # Let's watch its performance!
         from fsrl.data import FastCollector
 
-        # env = gym.make(args.task)
-        env = create_env(args)
+        envs = VecWrapper(lambda: create_env(args), worker, 1, args)
+        # envs = VecWrapper_noconti(lambda: create_env_noconti(args), worker, 5, args)
         agent.policy.eval()
-        collector = FastCollector(agent.policy, env)
+        collector = FastCollector(agent.policy, envs)
         result = collector.collect(n_episode=10, render=args.render)
-        rews, lens, cost = result["rew"], result["len"], result["cost"]
+        print(result["cost_dict"])
+        rews, lens, cost = result["rew"].mean(), result["len"].mean(), result["cost"].mean()
         print(f"Final eval reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
-        agent.policy.train()
-        collector = FastCollector(agent.policy, env)
-        result = collector.collect(n_episode=10, render=args.render)
-        rews, lens, cost = result["rew"], result["len"], result["cost"]
-        print(f"Final train reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
+        # agent.policy.train()
+        # collector = FastCollector(agent.policy, envs)
+        # result = collector.collect(n_episode=10, render=args.render)
+        # rews, lens, cost = result["rew"].mean(), result["len"].mean(), result["cost"].mean()
+        # print(f"Final train reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
 
 if __name__ == "__main__":

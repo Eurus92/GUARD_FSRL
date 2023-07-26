@@ -1,7 +1,7 @@
 import time
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
-
+from PIL import Image  # modif
 import gymnasium as gym
 import numpy as np
 import torch
@@ -15,6 +15,7 @@ from tianshou.data import (
 from tianshou.env import BaseVectorEnv, DummyVectorEnv
 from guard.safe_rl_envs.safe_rl_envs.envs.engine import Engine
 from fsrl.policy import BasePolicy
+import imageio
 
 
 class FastCollector(object):
@@ -108,6 +109,14 @@ class FastCollector(object):
             act={},
             rew={},
             cost={},
+            # cost_dict = Batch(
+            #     cost_hazards = 0.0,
+            #     cost_ghosts = 0.0,
+            #     cost_hazard3Ds = 0.0,
+            #     cost_ghost3Ds = 0.0,
+            #     cost_gremlins = 0.0
+            # ),
+            # cost_dict={},
             terminated={},
             truncated={},
             done={},
@@ -193,9 +202,10 @@ class FastCollector(object):
         self,
         n_episode: int = 1,
         random: bool = False,
-        render: Optional[float] = None,
+        render: Optional[float] = None, # None, # modif
         no_grad: bool = True,
         gym_reset_kwargs: Optional[Dict[str, Any]] = None,
+        fig_id: Optional[str] = '',
     ) -> Dict[str, Any]:
         """Collect a specified number of step or episode.
 
@@ -242,12 +252,31 @@ class FastCollector(object):
 
         step_count = 0
         total_cost = 0
+        # total_cost_dict = Batch(
+        #     cost_hazards = 0.0,
+        #     cost_ghosts = 0.0,
+        #     cost_hazard3Ds = 0.0,
+        #     cost_ghost3Ds = 0.0,
+        #     cost_gremlins = 0.0
+        # )
+        total_cost_dict = Batch(
+            cost_hazards = 0.0,
+            cost_ghosts = 0.0,
+            cost_hazard3Ds = 0.0,
+            cost_ghost3Ds = 0.0,
+            cost_gremlins = 0.0,
+            cost_pillars = 0.0,
+            cost_vases = 0.0,
+            cost_velocity = 0.0,
+        )
         termination_count = 0
         truncation_count = 0
         episode_count = 0
         episode_rews = []
         episode_lens = []
         episode_start_indices = []
+        img = []
+        id = 0
 
         while True:
             assert len(self.data) == len(ready_env_ids)
@@ -326,8 +355,52 @@ class FastCollector(object):
             total_cost += np.sum(cost)
             self.data.update(cost=cost)
 
-            if render:
-                self.env.render()
+            
+            for key, value in self.data.info.items():
+                if key == "cost_hazards":
+                    # cost_dict.update(cost_hazards=value)
+                    total_cost_dict["cost_hazards"] = total_cost_dict["cost_hazards"] + np.sum(value)
+                elif key == "cost_ghosts":
+                    # cost_dict.update(cost_ghosts=value)
+                    total_cost_dict["cost_ghosts"] = total_cost_dict["cost_ghosts"] + np.sum(value)
+                elif key == "cost_hazard3Ds":
+                    # cost_dict.update(cost_hazard3Ds=value)
+                    total_cost_dict["cost_hazard3Ds"] = total_cost_dict["cost_hazard3Ds"] + np.sum(value)
+                elif key == "cost_ghost3Ds":
+                    # cost_dict.update(cost_ghost3Ds=value)
+                    total_cost_dict["cost_ghost3Ds"] = total_cost_dict["cost_ghost3Ds"] + np.sum(value)
+                elif key == "cost_gremlins":
+                    # cost_dict.update(cost_gremlins=value)
+                    total_cost_dict["cost_gremlins"] = total_cost_dict["cost_gremlins"] + np.sum(value)
+                elif key == "cost_pillars":
+                    total_cost_dict["cost_pillars"] = total_cost_dict["cost_pillars"] + np.sum(value)
+                elif "vase" in key:
+                    total_cost_dict["cost_vases"] = total_cost_dict["cost_vases"] + np.sum(value)
+                elif "vel" in key:
+                    total_cost_dict["cost_velocity"] = total_cost_dict["cost_velocity"] + np.sum(value)
+                else:
+                    continue
+                
+            # self.data.update(cost_dict=cost_dict)
+            # print("new info", cost_dict)
+            # print("accumulated", total_cost_dict)
+
+            name = "Goal_Arm3_8Hazards"
+            id += 1
+            if render and id % 100 == 0:
+                # self.env.render()
+                data = self.env.render()
+                img_data = np.array(data[0])
+                img.append(img_data)
+                img_data = Image.fromarray(img_data.astype('uint8')).convert('RGB')
+                img_data.save("/home/yuqing/GUARD_FSRL/examples/mlp/figure/DefenseArm6Ghosts8"+fig_id+str(int(id/100))+".png")
+                # img_data.save("/home/yuqing/GUARD_FSRL/examples/mlp/figure/GoalArm3Ghosts8.png")
+                print(id)
+                # print(data[0])
+                # start = time.time()
+                # img = Image.fromarray(data.astype('uint8')).convert('RGB')
+                # img.save("/home/yuqing/GUARD_FSRL/examples/mlp/figure/"+name+".png")
+                # print(time.time() - start)
                 if render > 0 and not np.isclose(render, 0):
                     time.sleep(render)
 
@@ -367,12 +440,28 @@ class FastCollector(object):
             self.data.obs = self.data.obs_next
 
             if n_episode and episode_count >= n_episode:
+                print(episode_count)
                 break
 
         # generate statistics
         self.collect_step += step_count
         self.collect_episode += episode_count
         self.collect_time += max(time.time() - start_time, 1e-9)
+        # data = self.env.render()
+        # data = np.array(data[0])
+        # start = time.time()
+        # img = Image.fromarray(data.astype('uint8')).convert('RGB')
+        # img.save("/home/yuqing/GUARD_FSRL/examples/mlp/figure/"+name+fig_id+".png")
+        # print(time.time() - start)
+
+        # img = np.array(img)
+        # print(img.shape)
+        # img_flatten = img.reshape(1, -1)
+        # np.savetxt("img"+fig_id+".txt", img_flatten)
+        # imageio.mimsave("/home/yuqing/GUARD_FSRL/examples/mlp/figure/GoalArm3Ghosts8"+fig_id+"output.gif", img, 'GIF', duration = 0.1)
+        # file=open('data.txt', '+a') 
+        # file.write(str(img))
+        # file.close()
 
         if n_episode:
             self.data = Batch(
@@ -380,6 +469,13 @@ class FastCollector(object):
                 act={},
                 rew={},
                 cost={},
+                # cost_dict=Batch(
+                #     cost_hazards = 0.0,
+                #     cost_ghosts = 0.0,
+                #     cost_hazard3Ds = 0.0,
+                #     cost_ghost3Ds = 0.0,
+                #     cost_gremlins = 0.0
+                # ),
                 terminated={},
                 truncated={},
                 done={},
@@ -398,6 +494,8 @@ class FastCollector(object):
 
         done_count = termination_count + truncation_count
 
+        cost_dict = total_cost_dict / episode_count
+
         return {
             "n/ep": episode_count,
             "n/st": step_count,
@@ -405,6 +503,8 @@ class FastCollector(object):
             "len": len_mean,
             "total_cost": total_cost,
             "cost": total_cost / episode_count,
+            "total_cost_dict": total_cost_dict,
+            "cost_dict": cost_dict,
             "truncated": truncation_count / done_count,
             "terminated": termination_count / done_count,
         }

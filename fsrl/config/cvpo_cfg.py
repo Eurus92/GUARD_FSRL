@@ -9,7 +9,7 @@ class TrainCfg:
     cost_limit: float = 10
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
-    seed: int = 10
+    seed: int = 11
     use_default_cfg: bool = False
     # CVPO arguments
     estep_iter_num: int = 1
@@ -36,9 +36,10 @@ class TrainCfg:
     epoch: int = 200
     episode_per_collect: int = 10
     step_per_epoch: int = 10000
+    max_episode_steps: int = 20000
     update_per_step: float = 0.2
     buffer_size: int = 200000
-    worker: str = "ShmemVectorEnv"
+    worker: str = "SafeShmemVectorEnv"
     training_num: int = 20
     testing_num: int = 2
     # general train params
