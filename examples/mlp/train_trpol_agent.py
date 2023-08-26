@@ -37,6 +37,8 @@ from fsrl.utils import BaseLogger, TensorboardLogger, WandbLogger
 from fsrl.utils.exp_util import auto_name
 from fsrl.utils.wrapper.guard_wrapper import create_env, VecWrapper
 from fsrl.utils.wrapper.venv import SafeShmemVectorEnv
+from tianshou.data import Batch
+from fsrl.utils.exp_util import auto_name, load_config_and_model, seed_all
 
 TASK_TO_CFG = {
     # bullet safety gym tasks
@@ -76,7 +78,14 @@ TASK_TO_CFG = {
 
 @pyrallis.wrap()
 def train(args: TrainCfg):
+    ############## load from loggers ################
+    # path = "/home/yuqing/GUARD_FSRL/examples/mlp/logs/fast-safe-rl/Goal_Arm3_8Hazards-cost-1000/trpol_seed16-7c0f"
+    # cfg, model = load_config_and_model(path, num="_1000")
 
+    # import argparse
+    # args = argparse.Namespace(**cfg)
+
+    #################################################
     task = args.task
     default_cfg = TASK_TO_CFG[task]() if task in TASK_TO_CFG else TrainCfg()
     # use the default configs instead of the input args.
@@ -91,16 +100,19 @@ def train(args: TrainCfg):
         args = default_cfg
 
     # setup logger
-    cfg = asdict(args)
+    cfg = asdict(args)  # modif
     default_cfg = asdict(default_cfg)
-    if args.name is None:
-        args.name = auto_name(default_cfg, cfg, args.prefix, args.suffix)
-    if args.group is None:
-        args.group = args.task + "-cost-" + str(int(args.cost_limit))
+    # if args.name is None:
+    #     args.name = auto_name(default_cfg, cfg, args.prefix, args.suffix)
+    # if args.group is None:
+    #     args.group = args.task + "-cost-" + str(int(args.cost_limit))
+    args.name += auto_name(default_cfg, cfg, args.prefix, args.suffix)
+    args.group += args.task + "-cost-" + str(int(args.cost_limit))
     if args.logdir is not None:
         args.logdir = os.path.join(args.logdir, args.project, args.group)
     logger = WandbLogger(cfg, args.project, args.group, args.name, args.logdir)
     # logger = TensorboardLogger(args.logdir, log_txt=True, name=args.name)
+    # logger = BaseLogger(log_dir=args.logdir, log_txt=True, name=args.name)
     logger.save_config(cfg, verbose=args.verbose)
 
     # demo_env = gym.make(args.task)
@@ -132,6 +144,7 @@ def train(args: TrainCfg):
         deterministic_eval=args.deterministic_eval,
         action_scaling=args.action_scaling,
         action_bound_method=args.action_bound_method,
+        # load_model=model["model"],  # modif
     )
 
     training_num = min(args.training_num, args.episode_per_collect)
@@ -167,6 +180,8 @@ def train(args: TrainCfg):
         collector = FastCollector(agent.policy, envs)
         result = collector.collect(n_episode=10, render=args.render)
         rews, lens, cost = result["rew"], result["len"], result["cost"]
+        cost_dict = result["total_cost_dict"]
+        print(cost_dict)
         print(f"Final eval reward: {rews.mean()}, cost: {cost}, length: {lens.mean()}")
 
         agent.policy.train()
