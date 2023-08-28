@@ -57,7 +57,7 @@ def get_cfg_value(config, key):
     return "None"
 
 
-def load_config_and_model(path: str, best: bool = False):
+def load_config_and_model(path: str, best: bool = False, num: Optional[str]=''):
     """
     Load the configuration and trained model from a specified directory.
 
@@ -73,7 +73,7 @@ def load_config_and_model(path: str, best: bool = False):
         print(f"load config from {config_file}")
         with open(config_file) as f:
             config = yaml.load(f.read(), Loader=yaml.FullLoader)
-        model_file = "model.pt"
+        model_file = "model"+num+".pt"
         if best:
             model_file = "model_best.pt"
         model_path = osp.join(path, "checkpoint/" + model_file)

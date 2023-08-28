@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 @dataclass
 class TrainCfg:
     # general task params
-    task: str = "Defense_Arm6_8Ghosts"
+    task: str = "Goal_Arm3_8Hazards"
     cost_limit: float = 10
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train

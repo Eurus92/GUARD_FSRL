@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 @dataclass
 class TrainCfg:
     # general task params
-    task: str = "SafetyCarCircle-v0"
+    task: str = "Goal_Arm3_8Hazards"
     cost_limit: float = 10
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
@@ -33,7 +33,7 @@ class TrainCfg:
     unbounded: bool = False
     last_layer_scale: bool = False
     # collecting params
-    epoch: int = 200
+    epoch: int = 1200
     episode_per_collect: int = 10
     step_per_epoch: int = 10000
     max_episode_steps: int = 20000
@@ -55,9 +55,14 @@ class TrainCfg:
     render: bool = False
     # logger params
     logdir: str = "logs"
-    project: str = "fast-safe-rl"
-    group: Optional[str] = None
-    name: Optional[str] = None
+    # project: str = "fast-safe-rl"
+    # group: Optional[str] = None
+    # name: Optional[str] = None
+    # group: Optional[str] = 'one-haz+vel-'  # None
+    project: str = "fsrl-23summer"
+    group: Optional[str] = 'one-haz+idx4-'  # None
+    # group: Optional[str] = 'one-vel+idx1-'  # None
+    name: Optional[str] = ''  # None
     prefix: Optional[str] = "cvpo"
     suffix: Optional[str] = ""
 

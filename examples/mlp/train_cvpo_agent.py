@@ -28,6 +28,8 @@ from fsrl.utils import BaseLogger, TensorboardLogger, WandbLogger
 from fsrl.utils.exp_util import auto_name
 from fsrl.utils.wrapper.guard_wrapper import create_env, VecWrapper
 from fsrl.utils.wrapper.venv import SafeShmemVectorEnv
+from tianshou.data import Batch
+from fsrl.utils.exp_util import auto_name, load_config_and_model, seed_all
 
 TASK_TO_CFG = {
     # bullet safety gym tasks
@@ -84,10 +86,12 @@ def train(args: TrainCfg):
     # setup logger
     cfg = asdict(args)
     default_cfg = asdict(default_cfg)
-    if args.name is None:
-        args.name = auto_name(default_cfg, cfg, args.prefix, args.suffix)
-    if args.group is None:
-        args.group = args.task + "-cost-" + str(int(args.cost_limit))
+    # if args.name is None:
+    #     args.name = auto_name(default_cfg, cfg, args.prefix, args.suffix)
+    # if args.group is None:
+    #     args.group = args.task + "-cost-" + str(int(args.cost_limit))
+    args.name += auto_name(default_cfg, cfg, args.prefix, args.suffix)
+    args.group += args.task + "-cost-" + str(int(args.cost_limit))
     if args.logdir is not None:
         args.logdir = os.path.join(args.logdir, args.project, args.group)
     logger = WandbLogger(cfg, args.project, args.group, args.name, args.logdir)

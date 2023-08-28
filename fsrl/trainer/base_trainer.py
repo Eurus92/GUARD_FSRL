@@ -220,7 +220,7 @@ class BaseTrainer(ABC):
         update_info = self.gather_update_info()
         self.logger.store(tab="update", **update_info)
 
-        if self.epoch % self.save_model_interval == 0 and self.epoch >= 160:
+        if self.epoch % self.save_model_interval == 0 and self.epoch >= 1160:
             self.logger.save_checkpoint(self.epoch)
 
         if self.perf_is_better(test=True):

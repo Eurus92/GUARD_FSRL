@@ -6,13 +6,13 @@ from typing import Optional, Tuple
 class TrainCfg:
     # general task params
     task: str = "Goal_Arm3_8Hazards"
-    cost_limit: float = 1000
-    device: str = "cpu"
+    cost_limit: float = 10
+    device: str = "cuda:1" # "cpu"
     thread: int = 4  # if use "cpu" to train
-    seed: int = 12
+    seed: int = 11
     use_default_cfg: bool = False
     # algorithm params
-    lr: float = 5e-4
+    lr: float = 5e-3  # 5e-4 modif
     hidden_sizes: Tuple[int, ...] = (128, 128)
     unbounded: bool = False
     last_layer_scale: bool = False
@@ -35,13 +35,13 @@ class TrainCfg:
     action_scaling: bool = True
     action_bound_method: str = "clip"
     # collecting params
-    epoch: int = 500
+    epoch: int = 1200
     episode_per_collect: int = 20
     step_per_epoch: int = 10000
     repeat_per_collect: int = 4  # increasing this can improve efficiency, but less stability
     buffer_size: int = 100000
     worker: str = "SafeShmemVectorEnv"
-    training_num: int = 20
+    training_num: int = 20  #modif
     testing_num: int = 2
     # general params
     # batch-size >> steps per collect means calculating all data in one singe forward.
@@ -54,9 +54,11 @@ class TrainCfg:
     render: bool = False
     # logger params
     logdir: str = "logs"
-    project: str = "fast-safe-rl"
-    group: Optional[str] = None
-    name: Optional[str] = None
+    project: str = "fsrl-23summer"
+    # group: Optional[str] = 'one-haz+vel-'  # None
+    group: Optional[str] = 'one-haz+idx4-'  # None
+    # group: Optional[str] = 'one-vel+idx1-'  # None
+    name: Optional[str] = ''  # None
     prefix: Optional[str] = "trpol"
     suffix: Optional[str] = ""
 

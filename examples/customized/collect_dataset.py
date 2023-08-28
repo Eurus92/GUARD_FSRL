@@ -25,7 +25,7 @@ from fsrl.utils.net.common import ActorCritic
 @dataclass
 class TrainCfg:
     # general task params
-    task: str = "SafetyCarCircle-v0"
+    task: str = "Goal_Arm3_8Hazards"
     cost_start: float = 5
     cost_end: float = 100
     epoch_start: int = 100
@@ -41,11 +41,11 @@ class TrainCfg:
     use_lagrangian: bool = True
     device: str = "cpu"
     thread: int = 4  # if use "cpu" to train
-    seed: int = 10
+    seed: int = 15
     use_default_cfg: bool = True
     # algorithm params
-    lr: float = 5e-4
-    hidden_sizes: Tuple[int, ...] = (128, 128)
+    lr: float = 5e-3
+    hidden_sizes: Tuple[int, ...] = (16, 16)
     unbounded: bool = False
     last_layer_scale: bool = False
     # PPO specific arguments
@@ -67,11 +67,11 @@ class TrainCfg:
     action_scaling: bool = True
     action_bound_method: str = "clip"
     # collecting params
-    episode_per_collect: int = 10
+    episode_per_collect: int = 20
     step_per_epoch: int = 10000
     repeat_per_collect: int = 4  # increasing this can improve efficiency, but less stability
     buffer_size: int = 100000
-    worker: str = "ShmemVectorEnv"
+    worker: str = "SafeShmemVectorEnv"
     training_num: int = 20
     testing_num: int = 2
     # general params

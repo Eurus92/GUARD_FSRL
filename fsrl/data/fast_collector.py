@@ -268,6 +268,7 @@ class FastCollector(object):
             cost_pillars = 0.0,
             cost_vases = 0.0,
             cost_velocity = 0.0,
+            cost_index = 0.0,
         )
         termination_count = 0
         truncation_count = 0
@@ -378,6 +379,8 @@ class FastCollector(object):
                     total_cost_dict["cost_vases"] = total_cost_dict["cost_vases"] + np.sum(value)
                 elif "vel" in key:
                     total_cost_dict["cost_velocity"] = total_cost_dict["cost_velocity"] + np.sum(value)
+                elif "index" in key:
+                    total_cost_dict["cost_index"] = total_cost_dict["cost_index"] + np.sum(value)
                 else:
                     continue
                 
@@ -440,7 +443,7 @@ class FastCollector(object):
             self.data.obs = self.data.obs_next
 
             if n_episode and episode_count >= n_episode:
-                print(episode_count)
+                # print(episode_count)
                 break
 
         # generate statistics
@@ -495,6 +498,7 @@ class FastCollector(object):
         done_count = termination_count + truncation_count
 
         cost_dict = total_cost_dict / episode_count
+        print(total_cost_dict)
 
         return {
             "n/ep": episode_count,

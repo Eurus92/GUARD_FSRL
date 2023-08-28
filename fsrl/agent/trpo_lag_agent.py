@@ -14,7 +14,6 @@ from fsrl.utils import BaseLogger
 from fsrl.utils.exp_util import auto_name, seed_all
 from fsrl.utils.net.common import ActorCritic
 
-
 class TRPOLagAgent(OnpolicyAgent):
     """Trust Region Policy Optimization (TRPO) with PID Lagrangian agent.
 
@@ -104,7 +103,8 @@ class TRPOLagAgent(OnpolicyAgent):
         deterministic_eval: bool = True,
         action_scaling: bool = True,
         action_bound_method: str = "clip",
-        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None
+        lr_scheduler: Optional[torch.optim.lr_scheduler.LambdaLR] = None,
+        load_model: Optional[dict] = None  # modif
     ) -> None:
         super().__init__()
 
@@ -182,6 +182,10 @@ class TRPOLagAgent(OnpolicyAgent):
             action_space=env.action_space,
             lr_scheduler=lr_scheduler
         )
+        ############### modif
+        # if load_model is not None:
+        #     self.policy.load_state_dict(load_model)
+        #     print(self.policy.actor)
 
     def learn(
         self,
