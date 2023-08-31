@@ -55,8 +55,8 @@ class TrainCfg:
     # logger params
     logdir: str = "logs"
     project: str = "fsrl-23summer"
-    # group: Optional[str] = 'one-haz+vel-'  # None
-    group: Optional[str] = 'one-haz+idx4-'  # None
+    group: Optional[str] = 'one-haz+vel-'  # None
+    # group: Optional[str] = 'one-haz+idx4-'  # None
     # group: Optional[str] = 'one-vel+idx1-'  # None
     name: Optional[str] = ''  # None
     prefix: Optional[str] = "trpol"
